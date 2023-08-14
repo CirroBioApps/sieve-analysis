@@ -306,6 +306,8 @@ def read_fasta(project_name, dataset_name, file_name):
 
 
 def app():
+    ctx = get_script_run_ctx()
+    st.write(f"Session ID: {ctx.session_id}")
 
     # Set up a container for the login text
     login_empty = st.empty()
