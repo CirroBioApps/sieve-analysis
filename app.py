@@ -3,6 +3,8 @@
 from time import sleep
 from typing import List
 from cirro import DataPortal
+from cirro.api.auth.oauth_client import ClientAuth
+from cirro.api.config import AppConfig
 from cirro.api.clients.portal import DataPortalClient
 from cirro.sdk.exceptions import DataPortalAssetNotFound
 import io
@@ -42,7 +44,7 @@ def session_cache(func):
 
         # Return that value
         return st.session_state[cache_key]
-    
+
     return inner
 
 
@@ -75,8 +77,22 @@ def cirro_login(login_empty):
 
 def cirro_login_sub(auth_io: io.StringIO):
 
-    st.session_state['DataPortal-client'] = DataPortalClient(auth_io=auth_io)
-    st.session_state['DataPortal'] = DataPortal(client=st.session_state['DataPortal-client'])
+    app_config = AppConfig()
+
+    st.session_state['DataPortal-auth_info'] = ClientAuth(
+        region=app_config.region,
+        client_id=app_config.client_id,
+        auth_endpoint=app_config.auth_endpoint,
+        enable_cache=False,
+        auth_io=auth_io
+    )
+
+    st.session_state['DataPortal-client'] = DataPortalClient(
+        auth_info=st.session_state['DataPortal-auth_info']
+    )
+    st.session_state['DataPortal'] = DataPortal(
+        client=st.session_state['DataPortal-client']
+    )
 
 
 def list_datasets_in_project(project_name):
@@ -306,8 +322,6 @@ def read_fasta(project_name, dataset_name, file_name):
 
 
 def app():
-    ctx = get_script_run_ctx()
-    st.write(f"Session ID: {ctx.session_id}")
 
     # Set up a container for the login text
     login_empty = st.empty()
