@@ -13,7 +13,39 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 from streamlit.runtime.scriptrunner import script_run_context
+from streamlit.runtime.scriptrunner import get_script_run_ctx
 import threading
+
+
+def session_cache(func):
+    def inner(*args, **kwargs):
+
+        # Get the session context, which has a unique ID element
+        ctx = get_script_run_ctx()
+
+        # Define a cache key based on the function name and arguments
+        cache_key = ".".join([
+            str(ctx.session_id),
+            func.__name__,
+            ".".join(map(str, args)),
+            ".".join([
+                f"{k}={v}"
+                for k, v in kwargs.items()
+            ])
+        ])
+
+        # If the value has not been computed
+        if st.session_state.get(cache_key) is None:
+            # Compute it
+            st.session_state[cache_key] = func(
+                *args,
+                **kwargs
+            )
+
+        # Return that value
+        return st.session_state[cache_key]
+
+    return inner
 
 
 def cirro_login(login_empty):
@@ -75,7 +107,7 @@ def list_datasets_in_project(project_name):
     return [""] + [ds.name for ds in project.list_datasets()]
 
 
-@st.cache_data
+@session_cache
 def list_projects() -> List[str]:
 
     # Connect to Cirro
@@ -114,7 +146,7 @@ def prompt_project():
     )
 
 
-@st.cache_resource
+@session_cache
 def get_dataset(project_name, dataset_name):
     """Return a Cirro Dataset object."""
 
@@ -128,7 +160,7 @@ def get_dataset(project_name, dataset_name):
     return project.get_dataset_by_name(dataset_name)
 
 
-@st.cache_data
+@session_cache
 def read_csv(project_name, dataset_name, fn, **kwargs):
     """Read a CSV from a dataset in Cirro."""
 
@@ -140,7 +172,7 @@ def read_csv(project_name, dataset_name, fn, **kwargs):
     )
 
 
-@st.cache_data
+@session_cache
 def readlines(project_name, dataset_name, fn, **kwargs):
     """Read a CSV from a dataset in Cirro."""
 
@@ -208,7 +240,7 @@ def filter_metadata(metadata):
     return filtered_metadata
 
 
-@st.cache_data
+@session_cache
 def read_aligned_data(project_name, dataset_name) -> pd.DataFrame:
 
     # Read the aligned FASTA sequences into a DataFrame
@@ -368,7 +400,7 @@ def app():
     display_sequences(filtered_data, title=selected_region)
 
 
-@st.cache_data
+@session_cache
 def filter_data(aligned_data, filtered_metadata):
     """
     Filter down to the samples selected by the user on the basis of metadata
@@ -387,7 +419,7 @@ def filter_data(aligned_data, filtered_metadata):
     ).query("toKeep").drop(columns=["toKeep"])
 
 
-@st.cache_data
+@session_cache
 def make_wide_data(data):
 
     wide_data = data.pivot(
