@@ -11,14 +11,19 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 from streamlit.runtime.scriptrunner import script_run_context
+from streamlit.runtime.scriptrunner import get_script_run_ctx
 import threading
 
 
 def session_cache(func):
     def inner(*args, **kwargs):
 
+        # Get the session context, which has a unique ID element
+        ctx = get_script_run_ctx()
+
         # Define a cache key based on the function name and arguments
         cache_key = ".".join([
+            str(ctx.session_id),
             func.__name__,
             ".".join(map(str, args)),
             ".".join([
@@ -314,13 +319,14 @@ def app():
 
     # Wait until a valid project is selected
     if project_name == "":
+        st.write("Please select a Cirro project from the menu on the left")
         return
 
     dataset_name = prompt_dataset_in_project(project_name)
 
     # If no dataset was selected, prompt the user
     if dataset_name == "":
-        st.write("Please select a dataset")
+        st.write("Please select a Cirro dataset")
         return
 
     # Print a header at the top of the page showing the dataset
