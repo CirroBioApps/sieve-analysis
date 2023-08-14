@@ -1,3 +1,2 @@
 cirro>=0.7.3
-pandas
 plotly
